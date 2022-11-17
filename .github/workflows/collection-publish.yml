@@ -14,7 +14,7 @@ jobs:
         runner-os:
           - ubuntu-22.04
         runner-python-version:
-          - 3.8
+          - 3.6.8 # This is the Python3 version on CI container :shrug:
     steps:
 
       - name: Check out ${{ github.repository }} on disk
