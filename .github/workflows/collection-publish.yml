@@ -1,0 +1,59 @@
+name: Check HTML generation
+on:
+  push:
+  pull_request:
+  # schedule:
+  #   - cron: 3 0 * * *  # Run daily at 0:03 UTC
+
+jobs:
+  test-html-generator:
+    name: Create a HTML report from XMLs
+    runs-on: ${{ matrix.runner-os }}
+    strategy:
+      matrix:
+        runner-os:
+          - ubuntu-22.04
+        runner-python-version:
+          - 3.6
+    steps:
+
+      - name: Check out ${{ github.repository }} on disk
+        uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.runner-python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.runner-python-version }}
+
+      - name: Install deps
+        run: |
+          python -m pip install virtualenv
+          python -m virtualenv /tmp/venv
+          /tmp/venv/bin/pip install -r requirements.txt
+          mkdir -p htmls
+
+      - name: Run on one file
+        run: |
+          /tmp/venv/bin/python ./j2html.py tests/cnftests-junit.xml -o htmls/one_file.html
+
+      - name: Run on multiple files
+        run: |
+          /tmp/venv/bin/python ./j2html.py tests/cnftests-junit_*.xml -o htmls/multi_file.html
+
+      - name: Run on validation files
+        run: |
+          /tmp/venv/bin/python ./j2html.py tests/validation_junit_*.xml -o htmls/validation_file.html
+
+      - name: Run on setup files
+        run: |
+          /tmp/venv/bin/python ./j2html.py tests/setup_junit_*.xml -o htmls/setup_file.html
+
+      - name: Run on all files
+        run: |
+          /tmp/venv/bin/python ./j2html.py tests/*.xml -o htmls/all_file.html
+
+      - name: Store migrated collection artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: collection
+          path: htmls
