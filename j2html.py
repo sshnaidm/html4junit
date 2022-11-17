@@ -10,7 +10,7 @@ import re
 from jinja2 import Template
 
 from xml.sax import saxutils
-from junitparser import JUnitXml
+from junitparser import JUnitXml, TestSuite
 
 
 HTML_TMPL = r"""<?xml version="1.0" encoding="UTF-8"?>
@@ -470,6 +470,25 @@ def get_stat(xml):
     return res
 
 
+def merge(xml_tests):
+    all_tests = dict()
+    flat = []
+    for suite in xml_tests:
+        if isinstance(suite, TestSuite):
+            flat += [i for i in suite]
+        else:
+            flat.append(suite)
+    for i in flat:
+        name = i.name
+        if name not in all_tests:
+            all_tests[name] = i
+        else:
+            # Overwrite skipped tests with results
+            if all_tests[name].is_skipped and not i.is_skipped:
+                all_tests[name] = i
+    return list(all_tests.values())
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Extract tasks from a playbook."
@@ -490,6 +509,8 @@ def main():
     all_xml = JUnitXml.fromfile(args.files[0])
     for i in args.files[1:]:
         all_xml += JUnitXml.fromfile(i)
+    if len(args.files) > 1:
+        all_xml = merge(all_xml)
     data = get_stat(all_xml)
     html_template = Template(HTML_TMPL)
     html = html_template.render(
